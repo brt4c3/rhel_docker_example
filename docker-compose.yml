@@ -1,51 +1,29 @@
 services:
-  my_service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: DM_BASE_LOCAL
-    volumes:
-      - "./MW/WAS/:/WAS/"
-      - "./MW/logs:/MW/logs"
-      - "./db2/resources/db2:/MW/WAS/wlp/usr/share/resources/db2"
-      - "./MW/IIM/configuration/:/opt/IBM/InstallationManager/eclipse/configuration/"
-    command: 
-      - "/wlp/bin/installUtility"
-      - "install"
-      - "testdb"
-    entrypoint: >
-      /bin/bash -c "
-      chmod +rx /opt/IBM/InstallationManager/eclipse/configuration/config.ini &&
-      /opt/IBM/InstallationManager/eclipse/IBMIM -clean && 
-      /MW/WAS/wlp/bin/server start"
-    depends_on:
-      - testdb
-    environment:
-      - DB2_URL=jdbc:db2://testdb:50000/testdb
-      - DB2_USER=db2inst1
-      - DB2_PASSWORD=passw0rd
-
-  testdb:
+  db2:
     image: ibmcom/db2:11.5.0.0
-    container_name: testdb
+    container_name: db2
     environment:
-      - LICENSE=accept
-      - DB2INST1_PASSWORD=passw0rd
-      - DBNAME=testdb
-      - AUTOCONFIG=true
+      LICENSE: accept
+      DB2INST1_PASSWORD: passw0rd
+      DBNAME: db2
+      AUTOCONFIG: "true"
     ports:
       - "50000:50000"
     volumes:
-      - "./db2/resources/db2:/opt/ibm/db2/V11.5/java/"
-      - "./db2/dll/init.sql:/docker-entrypoint-initdb.d/init.sql"
-    command: >
-      /bin/bash -c "
-      /var/db2_setup/lib/setup_db2_instance.sh &&
-      su - db2inst1 -c 'db2start' &&
-      su - db2inst1 -c 'db2 connect to testdb' &&
-      su - db2inst1 -c 'db2 -tvf /docker-entrypoint-initdb.d/init.sql'"
-    healthcheck:
-      test: ["CMD-SHELL", "su - db2inst1 -c 'db2 connect to testdb' || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      - ./db2/resources/db2:/opt/ibm/db2/V11.5/java/
+      - ./db2/dll/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  app:
+    image: redhat/ubi9
+    container_name: app
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./MW/WAS/:/WAS/
+      - ./MW/logs:/MW/logs
+      - ./db2/resources/db2:/MW/WAS/wlp/usr/share/resources/db2
+      - ./MW/IIM/configuration/:/opt/IBM/InstallationManager/eclipse/configuration/
+    environment:
+      DB2_URL: jdbc:db2://db2:50000/db2
+      DB2_USER: db2inst1
+      DB2_PASSWORD: passw0rd

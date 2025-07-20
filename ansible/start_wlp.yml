@@ -1,0 +1,20 @@
+---
+- name: Start WLP Application inside Docker container
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Set permission on IBM IM config.ini
+      shell: |
+        docker exec DM_BASE_LOCAL chmod +rx /opt/IBM/InstallationManager/eclipse/configuration/config.ini
+
+    - name: Clean IBM IM state (optional but safe)
+      shell: |
+        docker exec DM_BASE_LOCAL /opt/IBM/InstallationManager/eclipse/IBMIM -clean
+
+    - name: Install testapp using InstallUtility
+      shell: |
+        docker exec DM_BASE_LOCAL /WAS/wlp/bin/installUtility install testapp
+
+    - name: Start WLP server
+      shell: |
+        docker exec DM_BASE_LOCAL /WAS/wlp/bin/server start

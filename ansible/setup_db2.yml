@@ -1,0 +1,46 @@
+---
+- name: Setup DB2 instance inside container
+  hosts: localhost
+  become: false
+  vars:
+    container_name: db2
+
+  tasks:
+    - name: Wait for DB2 container to be ready
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      until: container_info.container.State.Running
+      retries: 10
+      delay: 5
+
+    - name: Run DB2 instance setup script
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: /var/db2_setup/lib/setup_db2_instance.sh
+        tty: true
+
+    - name: Start DB2 as db2inst1 user
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: su - db2inst1 -c 'db2start'
+        tty: true
+
+    - name: Connect to testdb
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: su - db2inst1 -c 'db2 connect to testdb'
+        tty: true
+
+    - name: Run init.sql
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: su - db2inst1 -c 'db2 -tvf /docker-entrypoint-initdb.d/init.sql'
+        tty: true
+
+    - name: Healthcheck - ensure DB2 is available
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: su - db2inst1 -c 'db2 connect to testdb'
+        register: healthcheck_result
+        failed_when: healthcheck_result.rc != 0

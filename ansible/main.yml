@@ -1,0 +1,9 @@
+---
+- name: Install IBM stack (IIM + WLP unzip)
+  import_playbook: install_ibm_stack.yml
+
+- name: Setup DB2 database
+  import_playbook: setup_db2.yml
+
+- name: Start WebSphere Liberty
+  import_playbook: start_wlp.yml

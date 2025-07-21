@@ -1,3 +1,4 @@
+---
 services:
   db2:
     image: docker.io/ibmcom/db2:11.5.0.0
@@ -10,9 +11,9 @@ services:
     ports:
       - "50000:50000"
 
-  app:
+  openliberty_app:
     image: docker.io/open-liberty:kernel-slim-java17-openj9
-    container_name: app
+    container_name: openliberty_app
     ports:
       - "9080:9080"
       - "9443:9443"

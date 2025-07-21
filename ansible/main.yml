@@ -1,0 +1,16 @@
+---
+- name: Run container deployment playbooks based on runtime
+  hosts: localhost
+  connection: local
+  vars:
+    container_runtime: docker  # change to 'podman' if needed
+
+  tasks:
+    - name: Include OpenLiberty setup
+      ansible.builtin.include_vars: "{{ container_runtime }}/setup_openliberty.yml"
+
+    - name: Include DB2 setup
+      ansible.builtin.include_vars: "{{ container_runtime }}/setup_db2.yml"
+
+    - name: Include cleanup playbook (optional)
+      ansible.builtin.include_vars: "{{ container_runtime }}/cleanup.yml"

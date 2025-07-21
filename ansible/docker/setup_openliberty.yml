@@ -1,0 +1,35 @@
+---
+- name: Start OpenLiberty Application inside Docker container
+  hosts: localhost
+  connection: local
+  vars:
+    docker_container_name: openliberty_app
+    war_source_path: /MW/OL/app.war
+    war_dest_path: /config/dropins/app.war
+    jvm_options_source: /MW/OL/jvm.options
+    jvm_options_dest: /config/jvm.options
+    server_xml_source: /MW/OL/server.xml
+    server_xml_dest: /config/server.xml
+    install_utility_path: /opt/ibm/wlp/bin/installUtility
+    testdb_server_dir: /config/testdb
+
+  tasks:
+    - name: Copy WAR file to dropins folder inside container
+      ansible.builtin.command: >
+        docker cp {{ war_source_path }} {{ docker_container_name }}:{{ war_dest_path }}
+
+    - name: Copy jvm.options to testdb server folder inside container
+      ansible.builtin.command: >
+        docker cp {{ jvm_options_source }} {{ docker_container_name }}:{{ jvm_options_dest }}
+
+    - name: Copy server.xml to testdb server folder inside container
+      ansible.builtin.command: >
+        docker cp {{ server_xml_source }} {{ docker_container_name }}:{{ server_xml_dest }}
+
+    - name: Install testdb server on OpenLiberty app using InstallUtility
+      ansible.builtin.command: >
+        docker exec {{ docker_container_name }} {{ install_utility_path }} install {{ testdb_server_dir }}
+
+    - name: Start OpenLiberty server
+      ansible.builtin.command: >
+        docker exec {{ docker_container_name }} /config/bin/server start

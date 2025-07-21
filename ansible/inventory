@@ -1,0 +1,5 @@
+all:
+  hosts:
+    podman_host:
+      ansible_host: localhost #192.168.1.100 
+      ansible_user: jenkins

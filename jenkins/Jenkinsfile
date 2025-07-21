@@ -23,61 +23,50 @@ pipeline {
             }
         }
 
-        stage('Clone Git Repository') {
+        stage('Clone Repository') {
             steps {
                 sh """
                     rm -rf ${REPO_DIR}
                     git clone ${REPO_URL} ${REPO_DIR}
-                    echo "[✔] Repository cloned into ${REPO_DIR}"
-                    ls ${REPO_DIR}/jenkins || echo "No Jenkins scripts found"
-                    ls ${REPO_DIR}/ansible || echo "No Ansible scripts found"
+                    ls ${REPO_DIR}
                 """
             }
         }
 
-        stage('Start Podman Compose') {
+        stage('Deploy Containers via Ansible') {
             steps {
                 dir("${REPO_DIR}") {
                     sh """
-                        echo '🚀 Starting containers using podman-compose...'
-                        sudo podman-compose -f compose.yml up -d --build || exit 1
+                        echo '📦 Deploying containers on remote Podman host via Ansible...'
+                        ansible-playbook -i ansible/inventory ansible/deploy_podman.yml
                     """
                 }
             }
         }
 
-        stage('Setup DB2 with Ansible') {
+        stage('Configure DB2 via Ansible') {
             steps {
                 dir("${REPO_DIR}") {
-                    sh """
-                        echo '⚙️ Running DB2 Ansible setup...'
-                        ansible-playbook -i ansible/inventory ansible/setup_db2.yml
-                    """
+                    sh 'ansible-playbook -i ansible/inventory ansible/setup_db2.yml'
                 }
             }
         }
 
-        stage('Setup Open Liberty with Ansible') {
+        stage('Configure Open Liberty via Ansible') {
             steps {
                 dir("${REPO_DIR}") {
-                    sh """
-                        echo '⚙️ Running OpenLiberty Ansible setup...'
-                        ansible-playbook -i ansible/inventory ansible/setup_ol_app.yml
-                    """
+                    sh 'ansible-playbook -i ansible/inventory ansible/setup_ol_app.yml'
                 }
             }
         }
 
-        stage('Optional Tear Down') {
+        stage('Optional Teardown') {
             when {
                 expression { return params.check_podman_down == true }
             }
             steps {
                 dir("${REPO_DIR}") {
-                    sh """
-                        echo '🧹 Optionally tearing down containers...'
-                        sudo podman-compose down || true
-                    """
+                    sh 'ansible-playbook -i ansible/inventory ansible/teardown_podman.yml || true'
                 }
             }
         }
@@ -86,11 +75,7 @@ pipeline {
     post {
         always {
             script {
-                echo "🧼 Cleaning up environment"
-                dir("${REPO_DIR}") {
-                    sh 'suod podman-compose down || true'
-                }
-                sh 'sudo podman ps -a || true'
+                echo "🧹 Cleaning up workspace..."
                 cleanWs()
             }
         }

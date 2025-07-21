@@ -1,0 +1,17 @@
+---
+- name: Stop and remove Docker containers
+  hosts: localhost
+  connection: local
+  vars:
+    containers:
+      - openliberty_app
+      - db2
+
+  tasks:
+    - name: Stop containers
+      ansible.builtin.shell: docker stop {{ item }} || true
+      loop: "{{ containers }}"
+
+    - name: Remove containers
+      ansible.builtin.shell: docker rm {{ item }} || true
+      loop: "{{ containers }}"

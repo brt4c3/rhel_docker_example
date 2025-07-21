@@ -6,105 +6,121 @@ echo "============================================"
 echo " Fedora Jenkins + Podman + Ansible Installer"
 echo "============================================"
 
+# Colors
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+RESET=$(tput sgr0)
+
 # Functions
 log_step() {
-    echo -e "\n[$1] $2"
+    echo -e "\n${GREEN}[$1] $2${RESET}"
 }
 
 fail_exit() {
-    echo "$1"
+    echo -e "${RED}✖ $1${RESET}"
     exit 1
 }
 
-# [1/9] Update packages
-log_step "1/9" "Updating package list..."
-sudo dnf update -y
-sudo dnf install -y --skip-unavailable shadow-utils
-sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
-sudo mount --make-rshared /
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        fail_exit "Please run this script as root or with sudo."
+    fi
+}
 
-# [2/9] Install Java 21 (for Jenkins)
+check_root
+
+# [1/9] Update system and install basic tools
+log_step "1/9" "Updating packages and installing core tools..."
+dnf update -y
+dnf install -y shadow-utils wget curl sudo
+
+# Fix newuidmap permissions for rootless Podman
+log_step "1.1" "Configuring user namespaces for Podman..."
+chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
+
+# Optional: ensure / is a shared mount if needed
+if mountpoint -q /; then
+    mount --make-rshared /
+else
+    echo "⚠️ / is not a mountpoint — skipping '--make-rshared /'"
+fi
+
+# [2/9] Install Java 21 for Jenkins
 log_step "2/9" "Installing OpenJDK 21..."
-sudo dnf install -y --skip-unavailable java-21-openjdk java-21-openjdk-devel || fail_exit "Java install failed."
-java -version || fail_exit "Java not found after install."
+dnf install -y java-21-openjdk java-21-openjdk-devel || fail_exit "Java install failed."
+java -version || fail_exit "Java verification failed."
 
-# [3/9] Install wget
-log_step "3/9" "Installing wget..."
-sudo dnf install -y wget || fail_exit "wget install failed."
+# [3/9] Add Jenkins repository and key
+log_step "3/9" "Adding Jenkins repository..."
+wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo || fail_exit "Repo download failed."
+rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || fail_exit "GPG key import failed."
 
-# [4/9] Add Jenkins repository
-log_step "4/9" "Adding Jenkins repository..."
-sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo || fail_exit "Failed to download Jenkins repo."
-sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || fail_exit "Failed to import Jenkins GPG key."
+# [4/9] Install Jenkins and prepare user
+log_step "4/9" "Installing Jenkins..."
+dnf install -y jenkins || fail_exit "Jenkins installation failed."
 
-# [5/9] Install Jenkins
-log_step "5/9" "Installing Jenkins..."
-sudo dnf install -y jenkins || fail_exit "Jenkins install failed."
-
-# Create jenkins user if not exists
+# Create jenkins user if needed
 if ! id jenkins &>/dev/null; then
-    sudo useradd -m -s /bin/bash jenkins
-    log_step "5.1" "Created 'jenkins' user."
+    useradd -m -s /bin/bash jenkins
+    log_step "4.1" "Created 'jenkins' user."
 else
-    log_step "5.1" "'jenkins' user already exists."
+    log_step "4.1" "'jenkins' user already exists."
 fi
 
-# Enable linger to allow systemd user services
-sudo loginctl enable-linger jenkins
-echo "jenkins:100000:65536" | sudo tee -a /etc/subuid
-echo "jenkins:100000:65536" | sudo tee -a /etc/subgid
-sudo usermod -u 2000 jenkins
-sudo usermod -g 2000 jenkins
+# Configure subuid/subgid
+log_step "4.2" "Setting subuid/subgid for rootless containers..."
+grep -q '^jenkins:' /etc/subuid || echo "jenkins:100000:65536" >> /etc/subuid
+grep -q '^jenkins:' /etc/subgid || echo "jenkins:100000:65536" >> /etc/subgid
 
+# Enable linger for user services (rootless Podman)
+loginctl enable-linger jenkins
 
+# [5/9] Start Jenkins
+log_step "5/9" "Enabling and starting Jenkins service..."
+systemctl enable --now jenkins || fail_exit "Jenkins service failed to start."
+systemctl status jenkins --no-pager
 
-# [6/9] Start Jenkins
-log_step "6/9" "Starting Jenkins service..."
-sudo systemctl enable --now jenkins || fail_exit "Jenkins service start failed."
-
-log_step "6.1" "Checking Jenkins service status..."
-sudo systemctl status jenkins --no-pager || fail_exit "Jenkins not running properly."
-
-# [7/9] Validate Jenkins HTTP access
-log_step "6.2" "Verifying Jenkins HTTP access..."
-if curl -s -f http://localhost:8080 >/dev/null; then
-    echo "✅ Jenkins is running on http://localhost:8080"
+# [6/9] Optional: Open Jenkins port in firewall
+if command -v firewall-cmd &>/dev/null; then
+    log_step "6/9" "Opening Jenkins port 8080 in firewalld..."
+    firewall-cmd --add-port=8080/tcp --permanent
+    firewall-cmd --reload
 else
-    echo "⚠️ Jenkins not accessible. Check firewall or systemd logs."
+    echo "⚠️ firewall-cmd not found — skipping firewall configuration"
 fi
 
-# [8/9] Print initial admin password
-log_step "6.3" "Retrieving initial admin password..."
-if sudo test -f /var/lib/jenkins/secrets/initialAdminPassword; then
-    sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+# [7/9] Show Jenkins initial admin password
+log_step "7/9" "Retrieving Jenkins initial admin password..."
+if [[ -f /var/lib/jenkins/secrets/initialAdminPassword ]]; then
+    echo -e "${GREEN}🔑 Initial Admin Password:${RESET}"
+    cat /var/lib/jenkins/secrets/initialAdminPassword
 else
-    echo "⚠️ Could not retrieve admin password. Wait until Jenkins fully starts."
+    echo "⚠️ Jenkins not fully initialized yet. Try again in a few seconds."
 fi
 
-# [9/9] Install Podman and Ansible
-log_step "7/9" "Installing Podman..."
-sudo dnf install -y podman podman-compose || fail_exit "Podman or podman-compose install failed."
-sudo podman info || fail_exit "Podman not found after install."
-# Enable Podman socket
-sudo systemctl enable --now podman.socket || fail_exit "Podman socket start failed."
-log_step "7.1" "Checking Podman service status..."
-sudo systemctl status podman.socket --no-pager || fail_exit "Podman socket not running properly."
+# [8/9] Install Podman and Ansible
+log_step "8/9" "Installing Podman, podman-compose, and Ansible..."
+dnf install -y podman podman-compose ansible || fail_exit "Failed to install Podman/Ansible."
 
+# Enable podman.socket for REST API access
+systemctl enable --now podman.socket
+systemctl status podman.socket --no-pager
 
-log_step "8/9" "Installing Ansible..."
-sudo dnf install -y ansible || fail_exit "Ansible install failed."
+# [8.1] Initialize Podman for jenkins user
+log_step "8.1" "Running Podman as jenkins to initialize containers..."
+sudo -iu jenkins bash -c 'podman info || echo "⚠️ Podman initialization failed for jenkins."'
 
-# Versions
+# [9/9] Print versions and success message
 log_step "9/9" "Installed versions:"
-java -version
-podman --version
-podman-compose --version
-ansible --version
+echo "Java:" && java -version
+echo "Podman:" && podman --version
+echo "Podman Compose:" && podman-compose --version
+echo "Ansible:" && ansible --version
 
-# Final message
-echo -e "\n============================================"
+# ✅ Final
+echo -e "\n${GREEN}============================================"
 echo "✅ Installation Complete!"
 echo "🔗 Jenkins: http://localhost:8080"
-echo "🔑 Use the admin password shown above to unlock Jenkins."
-echo "🛠️ Podman, Ansible, and Java are all installed."
-echo "============================================"
+echo "🔑 Use the admin password above to unlock Jenkins."
+echo "🛠️ Podman (rootless), Ansible, and Java are all set up."
+echo "============================================${RESET}"

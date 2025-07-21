@@ -78,6 +78,8 @@ fi
 # [9/9] Install Podman and Ansible
 log_step "7/9" "Installing Podman..."
 sudo dnf install -y podman podman-compose || fail_exit "Podman or podman-compose install failed."
+sudo podman machine init
+sudo podman machine start 
 
 log_step "8/9" "Installing Ansible..."
 sudo dnf install -y ansible || fail_exit "Ansible install failed."

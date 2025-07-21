@@ -28,6 +28,12 @@ pipeline {
                 sh """
                 rm -rf ${REPO_DIR}
                 git clone ${REPO_URL} ${REPO_DIR}
+                echo # repo directory
+                ls ${REPO_DIR}
+                echo # jenkins scripts
+                ls ${REPO_DIR}/jenkins
+                echo # ansible scripts
+                ls ${REPO_DIR}/ansible
                 """
             }
         }
@@ -35,7 +41,10 @@ pipeline {
         stage('Start Podman Compose (on local WSL Fedora)') {
             steps {
                 dir("${REPO_DIR}") {
-                    sh 'jenkins/podman-compose.sh up -d --build'
+                    sh '''
+                        chmod +x ./jenkins/podman-compose.sh
+                        ./jenkins/podman-compose.sh up -d --build
+                    '''
                 }
             }
         }

@@ -73,7 +73,10 @@ sudo dnf install -y podman || {
     echo "Failed to install Podman."
     exit 1
 }
-
+sudo dnf install -y podman-compose || {
+    echo "Failed to install Podman Compose."
+    exit 1
+}
 # Install Ansible
 echo "[8/9] Installing Ansible..."
 sudo dnf install -y ansible || {
@@ -85,6 +88,7 @@ sudo dnf install -y ansible || {
 echo "[9/9] Installed versions:"
 java -version
 podman --version
+podman-compose --version
 ansible --version
 
 echo "============================================"

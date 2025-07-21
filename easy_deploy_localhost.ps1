@@ -8,11 +8,13 @@ Write-Output "📦 Copying files and starting OpenLiberty app..."
 docker exec $openlibertyContainer /opt/ol/wlp/bin/server create testdb
 docker exec $openlibertyContainer mkdir -p /opt/ol/wlp/usr/servers/testdb/dropins
 
-docker cp ./MW/OL/app.war "${openlibertyContainer}:/opt/ol/wlp/usr/servers/testdb/dropins/app.war"
+docker cp ./MW/OL/app.war "${openlibertyContainer}:/opt/ol/wlp/usr/servers/testdb/dropins/testdb.war"
 docker cp ./MW/OL/jvm.options "${openlibertyContainer}:/opt/ol/wlp/usr/servers/testdb/jvm.options"
 docker cp ./MW/OL/server.xml "${openlibertyContainer}:/opt/ol/wlp/usr/servers/testdb/server.xml"
 
-docker exec $openlibertyContainer /opt/ol/wlp/bin/server start testdb
+docker exec $openlibertyContainer /opt/ol/wlp/bin/server install testdb
+
+docker exec $openlobertyContainer /opt/ol/wlp/bin/server start testdb
 
 Write-Output "📦 Setting up DB2 container..."
 

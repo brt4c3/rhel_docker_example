@@ -9,7 +9,7 @@ services:
       DBNAME: db2
       AUTOCONFIG: "true"
     ports:
-      - "50000:50000"
+      - "55000:55000"
 
   openliberty_app:
     image: docker.io/open-liberty:kernel-slim-java17-openj9

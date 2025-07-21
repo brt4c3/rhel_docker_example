@@ -42,8 +42,7 @@ pipeline {
             steps {
                 dir("${REPO_DIR}") {
                     sh '''
-                        chmod +x ./jenkins/podman-compose.sh
-                        ./jenkins/podman-compose.sh 
+                        podman-compose -f ./compose.yml up -d --build
                     '''
                 }
             }

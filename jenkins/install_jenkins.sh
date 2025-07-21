@@ -1,102 +1,95 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 echo "============================================"
 echo " Fedora Jenkins + Podman + Ansible Installer"
 echo "============================================"
 
-# Update the package list
-echo "[1/9] Updating package list..."
+# Functions
+log_step() {
+    echo -e "\n[$1] $2"
+}
+
+fail_exit() {
+    echo "$1"
+    exit 1
+}
+
+# [1/9] Update packages
+log_step "1/9" "Updating package list..."
 sudo dnf update -y
 
-# Install Java (Jenkins requires Java 11, 17, or 21)
-echo "[2/9] Installing OpenJDK 21..."
-sudo dnf install -y --skip-unavailable java-21-openjdk java-21-openjdk-devel 
+# [2/9] Install Java 21 (for Jenkins)
+log_step "2/9" "Installing OpenJDK 21..."
+sudo dnf install -y --skip-unavailable java-21-openjdk java-21-openjdk-devel || fail_exit "Java install failed."
+java -version || fail_exit "Java not found after install."
 
-# Verify Java installation
-echo "Verifying Java installation..."
-java -version || { echo "Java installation failed. Exiting..."; exit 1; }
+# [3/9] Install wget
+log_step "3/9" "Installing wget..."
+sudo dnf install -y wget || fail_exit "wget install failed."
 
-# Install wget if not already installed
-echo "[3/9] Installing wget..."
-sudo dnf install -y wget 
+# [4/9] Add Jenkins repository
+log_step "4/9" "Adding Jenkins repository..."
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo || fail_exit "Failed to download Jenkins repo."
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || fail_exit "Failed to import Jenkins GPG key."
 
-# Add Jenkins repository
-echo "[4/9] Adding Jenkins repository..."
-sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo || {
-    echo "Failed to download Jenkins repository. Check network connectivity."
-    exit 1
-}
+# [5/9] Install Jenkins
+log_step "5/9" "Installing Jenkins..."
+sudo dnf install -y jenkins || fail_exit "Jenkins install failed."
 
-# Import Jenkins repository key
-echo "[5/9] Importing Jenkins repository key..."
-sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || {
-    echo "Failed to import Jenkins key. Check network connectivity."
-    exit 1
-}
+# Create jenkins user if not exists
+if ! id jenkins &>/dev/null; then
+    sudo useradd -m -s /bin/bash jenkins
+    log_step "5.1" "Created 'jenkins' user."
+else
+    log_step "5.1" "'jenkins' user already exists."
+fi
 
-# Install Jenkins
-echo "[6/9] Installing Jenkins..."
-sudo dnf install -y jenkins || {
-    echo "Jenkins installation failed. Check repository configuration."
-    exit 1
-}
-
+# Enable linger to allow systemd user services
 sudo loginctl enable-linger jenkins
 
+# [6/9] Start Jenkins
+log_step "6/9" "Starting Jenkins service..."
+sudo systemctl enable --now jenkins || fail_exit "Jenkins service start failed."
 
-# Start Jenkins service
-echo "Starting Jenkins service..."
-sudo systemctl start jenkins || {
-    echo "Failed to start Jenkins. Ensure systemd is enabled (check /etc/wsl.conf)."
-    exit 1
-}
+log_step "6.1" "Checking Jenkins service status..."
+sudo systemctl status jenkins --no-pager || fail_exit "Jenkins not running properly."
 
-# Enable Jenkins to start on boot
-sudo systemctl enable jenkins
+# [7/9] Validate Jenkins HTTP access
+log_step "6.2" "Verifying Jenkins HTTP access..."
+if curl -s -f http://localhost:8080 >/dev/null; then
+    echo "✅ Jenkins is running on http://localhost:8080"
+else
+    echo "⚠️ Jenkins not accessible. Check firewall or systemd logs."
+fi
 
-# Check Jenkins status
-echo "Checking Jenkins service status..."
-sudo systemctl status jenkins --no-pager
+# [8/9] Print initial admin password
+log_step "6.3" "Retrieving initial admin password..."
+if sudo test -f /var/lib/jenkins/secrets/initialAdminPassword; then
+    sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+else
+    echo "⚠️ Could not retrieve admin password. Wait until Jenkins fully starts."
+fi
 
-# Verify Jenkins is accessible
-echo "Verifying Jenkins is running on port 8080..."
-curl -s -f http://localhost:8080 >/dev/null && \
-  echo "Jenkins is running and accessible on port 8080." || \
-  echo "Warning: Jenkins is not accessible on http://localhost:8080. Check service status and port forwarding."
+# [9/9] Install Podman and Ansible
+log_step "7/9" "Installing Podman..."
+sudo dnf install -y podman podman-compose || fail_exit "Podman or podman-compose install failed."
 
-# Print initial admin password
-echo "Retrieving initial Jenkins admin password..."
-sudo cat /var/lib/jenkins/secrets/initialAdminPassword || echo "Unable to retrieve admin password."
+log_step "8/9" "Installing Ansible..."
+sudo dnf install -y ansible || fail_exit "Ansible install failed."
 
-# Install Podman
-echo "[7/9] Installing Podman..."
-sudo dnf install -y podman || {
-    echo "Failed to install Podman."
-    exit 1
-}
-sudo dnf install -y podman-compose || {
-    echo "Failed to install Podman Compose."
-    exit 1
-}
-# Install Ansible
-echo "[8/9] Installing Ansible..."
-sudo dnf install -y ansible || {
-    echo "Failed to install Ansible."
-    exit 1
-}
-
-# Print versions
-echo "[9/9] Installed versions:"
+# Versions
+log_step "9/9" "Installed versions:"
 java -version
 podman --version
 podman-compose --version
 ansible --version
 
-echo "============================================"
-echo "Installation Complete!"
-echo "- Jenkins: http://localhost:8080"
-echo "- Use the admin password above to unlock Jenkins."
-echo "- Podman and Ansible are installed."
+# Final message
+echo -e "\n============================================"
+echo "✅ Installation Complete!"
+echo "🔗 Jenkins: http://localhost:8080"
+echo "🔑 Use the admin password shown above to unlock Jenkins."
+echo "🛠️ Podman, Ansible, and Java are all installed."
 echo "============================================"

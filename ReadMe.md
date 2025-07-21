@@ -8,3 +8,5 @@
 - create pipeline yourself by copy and paste the `Jenkinsfile`
 
 
+install Qemu
+- https://qemu.weilnetz.de/w64/2025/

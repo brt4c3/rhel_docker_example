@@ -19,6 +19,8 @@ fail_exit() {
 # [1/9] Update packages
 log_step "1/9" "Updating package list..."
 sudo dnf update -y
+sudo dnf install -y --skip-unavailable shadow-utils
+
 
 # [2/9] Install Java 21 (for Jenkins)
 log_step "2/9" "Installing OpenJDK 21..."
@@ -50,6 +52,9 @@ fi
 sudo loginctl enable-linger jenkins
 echo "jenkins:100000:65536" | sudo tee -a /etc/subuid
 echo "jenkins:100000:65536" | sudo tee -a /etc/subgid
+sudo usermod -u 2000 jenkins
+sudo usermod -g 2000 jenkins
+
 
 
 # [6/9] Start Jenkins
@@ -78,8 +83,6 @@ fi
 # [9/9] Install Podman and Ansible
 log_step "7/9" "Installing Podman..."
 sudo dnf install -y podman podman-compose || fail_exit "Podman or podman-compose install failed."
-podman machine init
-podman machine start 
 
 log_step "8/9" "Installing Ansible..."
 sudo dnf install -y ansible || fail_exit "Ansible install failed."

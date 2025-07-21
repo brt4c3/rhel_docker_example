@@ -10,19 +10,15 @@ services:
     ports:
       - "50000:50000"
     volumes:
-      - ./db2/resources/db2:/opt/ibm/db2/V11.5/java/
-      - ./db2/dll/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
+      - ./DB2/DDL/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   app:
-    image: redhat/ubi9
+    image: openliberty
     container_name: app
     ports:
       - "9080:9080"
-    volumes:
-      - ./MW/WAS/:/WAS/
-      - ./MW/logs:/MW/logs
-      - ./db2/resources/db2:/MW/WAS/wlp/usr/share/resources/db2
-      - ./MW/IIM/configuration/:/opt/IBM/InstallationManager/eclipse/configuration/
+      - "9443:9443"
     environment:
       DB2_URL: jdbc:db2://db2:50000/db2
       DB2_USER: db2inst1

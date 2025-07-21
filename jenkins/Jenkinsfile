@@ -1,23 +1,38 @@
 pipeline {
     agent any
 
+    parameters {
+        booleanParam(name: 'check_podman_down', defaultValue: false, description: 'Tear down containers after run?')
+    }
+
     environment {
-        IIM_ZIP = "MW/agent.installer.linux.gtk.x86_64_1.9.2008.20240227_0018.zip"
-        WLP_ZIP = "MW/wlp-webProfile8-java8-linux-x86_64-24.0.0.6.zip"
         REPO_URL = "https://github.com/brt4c3/rhel_docker_example.git"
-        REPO_DIR = "rhel_docker_example"
+        REPO_NAME = "rhel_docker_example"
+        REPO_DIR = "${REPO_NAME}_${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Check Prerequisites') {
+
+        stage('Check Internet Connectivity') {
             steps {
                 script {
-                    if (!fileExists(env.IIM_ZIP)) {
-                        error "Missing IIM installer zip at ${env.IIM_ZIP}"
+                    def connected = sh(
+                        script: "curl -sSf https://github.com > /dev/null",
+                        returnStatus: true
+                    )
+                    if (connected != 0) {
+                        error "No internet connection. Exiting pipeline."
                     }
-                    if (!fileExists(env.WLP_ZIP)) {
-                        error "Missing WLP Web Profile zip at ${env.WLP_ZIP}"
-                    }
+                }
+            }
+        }
+
+        stage('Environment Sanity Check') {
+            steps {
+                script {
+                    sh 'which podman || { echo "❌ Podman not found"; exit 1; }'
+                    sh 'which podman-compose || { echo "❌ podman-compose not found"; exit 1; }'
+                    sh 'ansible-playbook --version || { echo "❌ Ansible not installed"; exit 1; }'
                 }
             }
         }
@@ -25,33 +40,66 @@ pipeline {
         stage('Clone Git Repository') {
             steps {
                 sh """
-                rm -rf ${env.REPO_DIR}
-                git clone ${env.REPO_URL} ${env.REPO_DIR}
+                rm -rf ${REPO_DIR}
+                git clone ${REPO_URL} ${REPO_DIR}
                 """
             }
         }
 
         stage('Start Podman Compose') {
             steps {
-                dir("${env.REPO_DIR}") {
+                dir("${REPO_DIR}") {
                     sh 'podman-compose up -d --build'
                 }
             }
         }
 
-        stage('Run Full Ansible Stack') {
+        stage('Set up DB2') {
             steps {
-                sh 'ansible-playbook -i ansible/inventory ansible/main.yml'
+                dir("${REPO_DIR}") {
+                    sh 'ansible-playbook -i ansible/inventory ansible/setup_db2.yml'
+                }
             }
         }
 
+        stage('Set up OpenLiberty') {
+            steps {
+                dir("${REPO_DIR}") {
+                    sh 'ansible-playbook -i ansible/inventory ansible/setup_ol_app.yml'
+                }
+            }
+        }
+
+        stage('Optional Tear Down') {
+            when {
+                expression { return params.check_podman_down == true }
+            }
+            steps {
+                dir("${REPO_DIR}") {
+                    sh 'podman-compose down || true'
+                }
+            }
+        }
     }
 
     post {
         always {
-            dir("${env.REPO_DIR}") {
-                sh 'podman-compose down || true'
+            script {
+                echo '🧼 Cleaning up workspace and listing containers'
+                dir("${REPO_DIR}") {
+                    sh 'podman-compose down || true'
+                }
+                sh 'podman ps -a || true'
+                cleanWs()
             }
+        }
+
+        failure {
+            echo '❌ Pipeline failed. Check above logs.'
+        }
+
+        success {
+            echo '✅ Pipeline completed successfully.'
         }
     }
 }

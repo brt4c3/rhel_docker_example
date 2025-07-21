@@ -12,27 +12,13 @@ pipeline {
     }
 
     stages {
-
         stage('Check Internet Connectivity') {
             steps {
                 script {
-                    def connected = sh(
-                        script: "curl -sSf https://github.com > /dev/null",
-                        returnStatus: true
-                    )
+                    def connected = sh(script: "curl -sSf https://github.com > /dev/null", returnStatus: true)
                     if (connected != 0) {
-                        error "No internet connection. Exiting pipeline."
+                        error "No internet connection. Exiting."
                     }
-                }
-            }
-        }
-
-        stage('Environment Sanity Check') {
-            steps {
-                script {
-                    sh 'which podman || { echo "❌ Podman not found"; exit 1; }'
-                    sh 'which podman-compose || { echo "❌ podman-compose not found"; exit 1; }'
-                    sh 'ansible-playbook --version || { echo "❌ Ansible not installed"; exit 1; }'
                 }
             }
         }
@@ -46,10 +32,10 @@ pipeline {
             }
         }
 
-        stage('Start Podman Compose') {
+        stage('Start Podman Compose (on local WSL Fedora)') {
             steps {
                 dir("${REPO_DIR}") {
-                    sh 'podman-compose up -d --build'
+                    sh 'jenkins/podman-compose.sh up -d --build'
                 }
             }
         }
@@ -76,7 +62,7 @@ pipeline {
             }
             steps {
                 dir("${REPO_DIR}") {
-                    sh 'podman-compose down || true'
+                    sh '/usr/local/bin/podman-compose.sh down || true'
                 }
             }
         }
@@ -85,21 +71,12 @@ pipeline {
     post {
         always {
             script {
-                echo '🧼 Cleaning up workspace and listing containers'
                 dir("${REPO_DIR}") {
-                    sh 'podman-compose down || true'
+                    sh '/usr/local/bin/podman-compose.sh down || true'
                 }
                 sh 'podman ps -a || true'
                 cleanWs()
             }
-        }
-
-        failure {
-            echo '❌ Pipeline failed. Check above logs.'
-        }
-
-        success {
-            echo '✅ Pipeline completed successfully.'
         }
     }
 }

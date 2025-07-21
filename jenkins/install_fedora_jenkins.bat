@@ -69,6 +69,7 @@ echo Ensuring 'fedora' user exists...
 wsl -d FedoraLinux-42 -u root bash -c "id fedora >/dev/null 2>&1 || (useradd -m -G wheel fedora && echo 'User created: fedora')"
 echo Ensuring 'jenkins' user exists...
 wsl -d FedoraLinux-42 -u root bash -c "id jenkins >/dev/null 2>&1 || (useradd -m -G wheel jenkins && echo 'User created: jenkins')"
+wsl -d FedoraLinux-42 -u root bash -c "echo 'jenkins ALL=(ALL) NOPASSWD: /usr/bin/podman, /usr/bin/podman-compose' > /etc/sudoers.d/jenkins_podman"
 
 :: Clean up
 del wsl_distros.txt 2>nul
@@ -118,7 +119,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 :: Run Jenkins installation script with output logging
 echo Running Jenkins install script in Fedora WSL...
-wsl -d FedoraLinux-42 -u fedora -- bash -c "cd rhel_docker_example/jenkins && /bin/bash -x install_jenkins.sh 2>&1 | tee jenkins_install.log"
+wsl -d FedoraLinux-42 -u root -- bash -c "cd rhel_docker_example/jenkins && /bin/bash -x install_jenkins.sh 2>&1 | tee jenkins_install.log"
 if %ERRORLEVEL% NEQ 0 (
     echo Jenkins installation failed. Check log inside WSL: ~/rhel_docker_example/jenkins/jenkins_install.log
     pause

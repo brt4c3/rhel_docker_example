@@ -35,26 +35,12 @@ pipeline {
             }
         }
 
-        stage('Pull Podman Images') {
-            steps {
-                dir("${REPO_DIR}") {
-                    sh """
-                        echo '📦 Pulling db2 image...'
-                        podman pull docker.io/ibmcom/db2:11.5.0.0 || true
-
-                        echo '📦 Pulling open-liberty image...'
-                        podman pull docker.io/open-liberty:kernel-slim-java11 || true
-                    """
-                }
-            }
-        }
-
         stage('Start Podman Compose') {
             steps {
                 dir("${REPO_DIR}") {
                     sh """
                         echo '🚀 Starting containers using podman-compose...'
-                        podman-compose -f compose.yml up -d --build || exit 1
+                        sudo podman-compose -f compose.yml up -d --build || exit 1
                     """
                 }
             }
@@ -90,7 +76,7 @@ pipeline {
                 dir("${REPO_DIR}") {
                     sh """
                         echo '🧹 Optionally tearing down containers...'
-                        podman-compose down || true
+                        sudo podman-compose down || true
                     """
                 }
             }
@@ -102,9 +88,9 @@ pipeline {
             script {
                 echo "🧼 Cleaning up environment"
                 dir("${REPO_DIR}") {
-                    sh 'podman-compose down || true'
+                    sh 'suod podman-compose down || true'
                 }
-                sh 'podman ps -a || true'
+                sh 'sudo podman ps -a || true'
                 cleanWs()
             }
         }

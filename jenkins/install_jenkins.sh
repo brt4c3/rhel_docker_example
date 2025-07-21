@@ -84,6 +84,12 @@ fi
 # [9/9] Install Podman and Ansible
 log_step "7/9" "Installing Podman..."
 sudo dnf install -y podman podman-compose || fail_exit "Podman or podman-compose install failed."
+sudo podman info || fail_exit "Podman not found after install."
+# Enable Podman socket
+sudo systemctl enable --now podman.socket || fail_exit "Podman socket start failed."
+log_step "7.1" "Checking Podman service status..."
+sudo systemctl status podman.socket --no-pager || fail_exit "Podman socket not running properly."
+
 
 log_step "8/9" "Installing Ansible..."
 sudo dnf install -y ansible || fail_exit "Ansible install failed."

@@ -41,8 +41,8 @@ pipeline {
         stage('Pull docker repo'){
             steps {
                 sh"""
-                    podman pull docker.io/ibmcom/db2:11.5.0.0
-                    podman pull docker.io/open-liberty:kernel-slim-java11
+                    sudo podman pull docker.io/ibmcom/db2:11.5.0.0
+                    sudo podman pull docker.io/open-liberty:kernel-slim-java11
                 """
             }
         }
@@ -51,7 +51,7 @@ pipeline {
             steps {
                 dir("${REPO_DIR}") {
                     sh '''
-                        podman-compose -f ./compose.yml up -d
+                        sudo podman-compose -f ./compose.yml up -d
                     '''
                 }
             }

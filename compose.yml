@@ -14,7 +14,8 @@ services:
       - ./DB2/DDL/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   app:
-    image: openliberty
+    image: openliberty/open-liberty:kernel-slim-java11
+
     container_name: app
     ports:
       - "9080:9080"

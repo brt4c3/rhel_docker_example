@@ -79,6 +79,8 @@ echo Cloning Jenkins Docker example repo...
 wsl -d FedoraLinux-42 -u fedora -- rm -rf rhel_docker_example >/dev/null 2>&1
 wsl -d FedoraLinux-42 -u fedora -- git clone https://github.com/brt4c3/rhel_docker_example.git
 
+timeout /s 3
+
 :: Check if Jenkins install script exists
 echo Verifying Jenkins install script...
 wsl -d FedoraLinux-42 -u fedora bash -c "[ -f rhel_docker_example/jenkins/install_jenkins.sh ] || (echo 'ERROR: install_jenkins.sh not found' && exit 1)"
@@ -122,17 +124,3 @@ if %ERRORLEVEL% NEQ 0 (
 echo Terminating FedoraLinux-42 to apply changes...
 wsl --terminate FedoraLinux-42
 
-:: Final success message
-echo ============================================
-echo Jenkins setup complete!
-echo Access Jenkins in your browser at:
-echo      http://localhost:8080
-echo
-echo To check the initial admin password:
-echo      wsl -d FedoraLinux-42 -u fedora cat /var/lib/jenkins/secrets/initialAdminPassword
-echo
-echo To check Jenkins status:
-echo      wsl -d FedoraLinux-42 -u fedora systemctl status jenkins
-echo (Note: If systemd is not enabled, Jenkins may not auto-start.)
-echo ============================================
-pause

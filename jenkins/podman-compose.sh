@@ -16,5 +16,5 @@ echo "Using podman at: $(which podman)"
 podman --version
 
 # Run podman-compose
-exec podman-compose  -f ./docker-compose.yml up -d --build
+exec podman-compose  -f ./compose.yml up -d --build
 

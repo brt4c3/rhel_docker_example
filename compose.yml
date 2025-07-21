@@ -27,3 +27,4 @@ services:
       DB2_URL: jdbc:db2://db2:50000/db2
       DB2_USER: db2inst1
       DB2_PASSWORD: passw0rd
+

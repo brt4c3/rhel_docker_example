@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IIM_ZIP = "MW/iim_installer.zip"
-        WLP_ZIP = "MW/wlp-webProfile-java8-linux.zip"
+        IIM_ZIP = "MW/agent.installer.linux.gtk.x86_64_1.9.2008.20240227_0018.zip"
+        WLP_ZIP = "MW/wlp-webProfile8-java8-linux-x86_64-24.0.0.6.zip"
         REPO_URL = "https://github.com/brt4c3/rhel_docker_example.git"
         REPO_DIR = "rhel_docker_example"
     }
@@ -31,10 +31,10 @@ pipeline {
             }
         }
 
-        stage('Start Docker Compose') {
+        stage('Start Podman Compose') {
             steps {
                 dir("${env.REPO_DIR}") {
-                    sh 'docker-compose up -d --build'
+                    sh 'podman-compose up -d --build'
                 }
             }
         }
@@ -50,8 +50,7 @@ pipeline {
     post {
         always {
             dir("${env.REPO_DIR}") {
-                sh 'docker-compose down || true'
+                sh 'podman-compose down || true'
             }
         }
-    }
 }

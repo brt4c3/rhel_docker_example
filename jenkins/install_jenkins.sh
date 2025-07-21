@@ -12,7 +12,7 @@ sudo dnf update -y
 
 # Install Java (Jenkins requires Java 11, 17, or 21)
 echo "[2/9] Installing OpenJDK 17..."
-sudo dnf install -y java-17-openjdk-devel
+sudo dnf install -y java-17-openjdk-devel --skip-unavailable
 
 # Verify Java installation
 echo "Verifying Java installation..."
@@ -20,7 +20,7 @@ java -version || { echo "Java installation failed. Exiting..."; exit 1; }
 
 # Install wget if not already installed
 echo "[3/9] Installing wget..."
-sudo dnf install -y wget
+sudo dnf install -y wget 
 
 # Add Jenkins repository
 echo "[4/9] Adding Jenkins repository..."

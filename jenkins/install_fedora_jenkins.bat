@@ -79,7 +79,7 @@ timeout /t 1
 
 :: Clone Jenkins example repo
 echo Cloning Jenkins Docker example repo...
-wsl -d FedoraLinux-42 -u fedora -- rm -rf rhel_docker_example >/dev/null 2>&1
+wsl -d FedoraLinux-42 -u fedora -- rm -rf ./rhel_docker_example/ >/dev/null 2>&1
 wsl -d FedoraLinux-42 -u fedora -- git clone https://github.com/brt4c3/rhel_docker_example.git
 
 timeout /t 3

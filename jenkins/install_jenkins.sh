@@ -20,7 +20,8 @@ fail_exit() {
 log_step "1/9" "Updating package list..."
 sudo dnf update -y
 sudo dnf install -y --skip-unavailable shadow-utils
-
+sudo chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap
+sudo mount --make-rshared /
 
 # [2/9] Install Java 21 (for Jenkins)
 log_step "2/9" "Installing OpenJDK 21..."

@@ -63,9 +63,11 @@ if %ERRORLEVEL% NEQ 0 (
     echo FedoraLinux-42 is installed.
 )
 
+
 :: Create fedora user if not exists
 echo Ensuring 'fedora' user exists...
 wsl -d FedoraLinux-42 -u root bash -c "id fedora >/dev/null 2>&1 || (useradd -m -G wheel fedora && echo 'User created: fedora')"
+echo Ensuring 'jenkins' user exists...
 wsl -d FedoraLinux-42 -u root bash -c "id jenkins >/dev/null 2>&1 || (useradd -m -G wheel jenkins && echo 'User created: jenkins')"
 
 :: Clean up

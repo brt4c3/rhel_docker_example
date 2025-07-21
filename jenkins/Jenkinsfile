@@ -38,6 +38,15 @@ pipeline {
             }
         }
 
+        stage('Pull docker repo'){
+            steps {
+                sh"""
+                    podman pull docker.io/ibmcom/db2:11.5.0.0
+                    podman pull docker.io/open-liberty:kernel-slim-java11
+                """
+            }
+        }
+
         stage('Start Podman Compose (on local WSL Fedora)') {
             steps {
                 dir("${REPO_DIR}") {

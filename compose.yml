@@ -13,7 +13,7 @@ services:
 #      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
 
   app:
-    image: openliberty/open-liberty:kernel-slim-java11
+    image: open-liberty:kernel-slim-java8-openj9
     container_name: app
     ports:
       - "9080:9080"

@@ -11,7 +11,7 @@ echo "[1/9] Updating package list..."
 sudo dnf update -y
 
 # Install Java (Jenkins requires Java 11, 17, or 21)
-echo "[2/9] Installing OpenJDK 17..."
+echo "[2/9] Installing OpenJDK 21..."
 sudo dnf install -y --skip-unavailable java-21-openjdk java-21-openjdk-devel 
 
 # Verify Java installation

@@ -9,8 +9,6 @@ services:
       AUTOCONFIG: "true"
     ports:
       - "50000:50000"
-#    volumes:
-#      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
 
   app:
     image: docker.io/open-liberty:kernel-slim-java17-openj9

@@ -76,6 +76,7 @@ wsl -d FedoraLinux-42 -u fedora -- sudo dnf install -y git
 
 :: Clone Jenkins example repo
 echo Cloning Jenkins Docker example repo...
+wsl -d FedoraLinux-42 -u fedora -- rm -rf rhel_docker_example >/dev/null 2>&1
 wsl -d FedoraLinux-42 -u fedora -- git clone https://github.com/brt4c3/rhel_docker_example.git
 
 :: Check if Jenkins install script exists

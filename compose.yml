@@ -1,6 +1,7 @@
 services:
   db2:
     image: ibmcom/db2:11.5.0.0
+    container_name: db2
     environment:
       LICENSE: accept
       DB2INST1_PASSWORD: passw0rd
@@ -8,11 +9,12 @@ services:
       AUTOCONFIG: "true"
     ports:
       - "50000:50000"
-    volumes:
-      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
+#    volumes:
+#      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
 
   app:
     image: openliberty/open-liberty:kernel-slim-java11
+    container_name: app
     ports:
       - "9080:9080"
       - "9443:9443"

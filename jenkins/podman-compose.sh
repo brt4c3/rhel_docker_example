@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e 
 
 # Make sure podman is found
 export PATH=$PATH:/usr/local/bin:/usr/bin
@@ -15,5 +16,5 @@ echo "Using podman at: $(which podman)"
 podman --version
 
 # Run podman-compose
-exec podman-compose "$@"
+exec podman-compose  -f ./docker-compose.yml up -d --build
 

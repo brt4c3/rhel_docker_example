@@ -43,6 +43,9 @@ sudo dnf install -y jenkins || {
     exit 1
 }
 
+sudo loginctl enable-linger jenkins
+
+
 # Start Jenkins service
 echo "Starting Jenkins service..."
 sudo systemctl start jenkins || {

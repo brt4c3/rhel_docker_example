@@ -1,8 +1,19 @@
 #!/bin/bash
-# WSL-safe podman-compose wrapper for Jenkins
-export PATH=$PATH:/usr/bin:/usr/local/bin
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-which podman
+
+# Make sure podman is found
+export PATH=$PATH:/usr/local/bin:/usr/bin
+
+# Set runtime dir for Jenkins user (UID 992 or whatever Jenkins runs as)
+export XDG_RUNTIME_DIR="/tmp/xdg-runtime-jenkins"
+
+# Create it if it doesn't exist
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+
+# Optional debugging
+echo "Using podman at: $(which podman)"
 podman --version
+
+# Run podman-compose
 exec podman-compose "$@"
+

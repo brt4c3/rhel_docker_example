@@ -48,6 +48,9 @@ fi
 
 # Enable linger to allow systemd user services
 sudo loginctl enable-linger jenkins
+echo "jenkins:100000:65536" | sudo tee -a /etc/subuid
+echo "jenkins:100000:65536" | sudo tee -a /etc/subgid
+
 
 # [6/9] Start Jenkins
 log_step "6/9" "Starting Jenkins service..."

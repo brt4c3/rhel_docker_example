@@ -51,7 +51,7 @@ pipeline {
             steps {
                 dir("${REPO_DIR}") {
                     sh '''
-                        podman-compose -f ./compose.yml up -d --build
+                        podman-compose -f ./compose.yml up -d
                     '''
                 }
             }

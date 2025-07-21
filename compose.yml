@@ -1,6 +1,6 @@
 services:
   db2:
-    image: ibmcom/db2:11.5.0.0
+    image: docker.io/ibmcom/db2:11.5.0.0
     container_name: db2
     environment:
       LICENSE: accept
@@ -13,7 +13,7 @@ services:
 #      - ./DB2/resources/db2:/opt/ibm/db2/V11.5/java/
 
   app:
-    image: open-liberty:kernel-slim-java8-openj9
+    image: docker.io/open-liberty:kernel-slim-java11
     container_name: app
     ports:
       - "9080:9080"
